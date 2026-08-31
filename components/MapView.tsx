@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Trafo } from "@/lib/trafos";
 import { googleMapsPointUrl } from "@/lib/trafos";
+import { copyToClipboard } from "@/lib/clipboard";
 
 // Ícones em SVG inline: evita depender de imagens externas para os pins
 // (só os tiles do mapa vêm da rede) e permite destacar o trafo selecionado.
@@ -29,6 +30,45 @@ const defaultIcon = pinIcon("#2563eb", 28);
 const selectedIcon = pinIcon("#dc2626", 36);
 
 const RIO_CENTER: [number, number] = [-22.9, -42.8];
+
+function PopupContent({ t }: { t: Trafo }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    const ok = await copyToClipboard(`${t.lat}, ${t.lng}`);
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  }
+
+  return (
+    <div className="text-sm">
+      <div className="font-semibold">{t.name}</div>
+      <div className="flex items-center gap-2 text-gray-600">
+        <span>
+          {t.lat.toFixed(6)}, {t.lng.toFixed(6)}
+        </span>
+        <button
+          type="button"
+          onClick={handleCopy}
+          title="Copiar coordenada"
+          className="shrink-0 text-xs font-medium text-gray-500 hover:text-gray-800"
+        >
+          {copied ? "✓ Copiado" : "📋 Copiar"}
+        </button>
+      </div>
+      <a
+        href={googleMapsPointUrl(t)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1 inline-block text-blue-600 underline"
+      >
+        Abrir no Google Maps
+      </a>
+    </div>
+  );
+}
 
 function FitToResults({ trafos }: { trafos: Trafo[] }) {
   const map = useMap();
@@ -100,20 +140,7 @@ export default function MapView({
           }}
         >
           <Popup>
-            <div className="text-sm">
-              <div className="font-semibold">{t.name}</div>
-              <div className="text-gray-600">
-                {t.lat.toFixed(6)}, {t.lng.toFixed(6)}
-              </div>
-              <a
-                href={googleMapsPointUrl(t)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-block text-blue-600 underline"
-              >
-                Abrir no Google Maps
-              </a>
-            </div>
+            <PopupContent t={t} />
           </Popup>
         </Marker>
       ))}

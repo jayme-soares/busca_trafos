@@ -8,6 +8,7 @@ import {
   googleMapsRouteUrl,
   type Trafo,
 } from "@/lib/trafos";
+import { copyToClipboard } from "@/lib/clipboard";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -24,8 +25,18 @@ export default function AppShell() {
   const [notFound, setNotFound] = useState<string[]>([]);
   const [selected, setSelected] = useState<Trafo | null>(null);
   const [searched, setSearched] = useState(false);
+  const [copiedName, setCopiedName] = useState<string | null>(null);
 
   const hasQuery = query.trim().length > 0;
+
+  async function handleCopyCoords(t: Trafo, e: React.MouseEvent) {
+    e.stopPropagation();
+    const ok = await copyToClipboard(`${t.lat}, ${t.lng}`);
+    if (ok) {
+      setCopiedName(t.name);
+      setTimeout(() => setCopiedName((cur) => (cur === t.name ? null : cur)), 1500);
+    }
+  }
 
   function runSearch() {
     if (!hasQuery) {
@@ -125,9 +136,17 @@ export default function AppShell() {
                   const isSelected = selected?.name === t.name;
                   return (
                     <li key={t.name}>
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setSelected(t)}
-                        className={`w-full px-4 py-2.5 text-left transition-colors ${
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelected(t);
+                          }
+                        }}
+                        className={`w-full cursor-pointer px-4 py-2.5 text-left transition-colors ${
                           isSelected
                             ? "bg-brand-50 dark:bg-brand-700/20"
                             : "hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -147,10 +166,20 @@ export default function AppShell() {
                             Google Maps
                           </a>
                         </div>
-                        <div className="mt-0.5 font-mono text-xs text-gray-500 dark:text-gray-400">
-                          {t.lat.toFixed(6)}, {t.lng.toFixed(6)}
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                            {t.lat.toFixed(6)}, {t.lng.toFixed(6)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => handleCopyCoords(t, e)}
+                            title="Copiar coordenada"
+                            className="shrink-0 rounded px-1.5 py-0.5 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                          >
+                            {copiedName === t.name ? "✓ Copiado" : "📋 Copiar"}
+                          </button>
                         </div>
-                      </button>
+                      </div>
                     </li>
                   );
                 })}
