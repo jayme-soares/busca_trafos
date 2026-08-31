@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+.vercel
+*.local
+.claude/settings.local.json
+.DS_Store
+npm-debug.log*
+~$*.xlsx
